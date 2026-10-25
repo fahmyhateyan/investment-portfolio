@@ -53,11 +53,16 @@
 
   .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
   @media (min-width: 760px) { .cards { grid-template-columns: repeat(3, 1fr); } }
-  @media (min-width: 1040px) { .cards { grid-template-columns: repeat(6, 1fr); } #fundCards { grid-template-columns: repeat(4, 1fr); } }
+  @media (min-width: 1040px) { .cards { grid-template-columns: repeat(6, 1fr); } #fundCards { grid-template-columns: repeat(4, 1fr); } #propCards { grid-template-columns: repeat(3, 1fr); } }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 15px; min-width: 0; }
   .card .v { font-size: 19px; font-weight: 750; margin: 6px 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card .s { font-size: 11.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card.tap { cursor: pointer; } .card.tap:active { transform: scale(.98); }
+  .split { margin-top: 6px; display: grid; gap: 4px; font-size: 13px; }
+  .split .rl { display: flex; justify-content: space-between; gap: 6px; white-space: nowrap; }
+  .split .rl span:last-child { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .rh { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+  .rh table { font-size: 12.5px; } .rh td { padding: 7px 4px; }
   .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
 
   .grid2 { display: grid; gap: 12px; grid-template-columns: 1fr; margin-bottom: 12px; }
@@ -108,6 +113,8 @@
   .prop h3 { margin: 0; font-size: 15px; } .prop .loc { color: var(--faint); font-size: 12px; margin: 2px 0 10px; }
   .kv { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 14px; font-size: 13px; }
   @media (min-width: 700px) { .kv { grid-template-columns: repeat(4, 1fr); } }
+  .kv .badge { display: inline-block; font-size: 11px; color: var(--amber); margin: 0 4px 0 0; }
+  .kv .badge.ok { color: var(--green); }
   .kv span { display: block; color: var(--faint); font-size: 11px; margin-bottom: 2px; }
   .prop a { color: var(--cyan); font-size: 13px; text-decoration: none; display: inline-block; margin-top: 12px; }
 
@@ -181,7 +188,7 @@
       </div>
       <div class="grid2">
         <div class="panel"><h2>Everything you own</h2><div class="hint">Box size = value</div><div class="tree" id="tree"></div></div>
-        <div class="panel"><h2>Property cash flow</h2><div class="hint">Last 12 months, KES</div>
+        <div class="panel"><h2>Rent by property</h2><div class="hint">Last 12 months, KES</div>
           <div class="chartbox"><canvas id="cash"></canvas></div></div>
       </div>
     </section>
@@ -228,7 +235,7 @@
       <div class="cards" id="propCards"></div>
       <div class="panel" style="margin-bottom:12px"><h2>Your properties</h2><div class="hint">Values are estimates; tenant details from your agreements</div>
         <div id="propList"></div></div>
-      <div class="panel"><h2>Cash flow</h2><div class="hint">Rent in, service charge, mortgage and repairs out (KES)</div>
+      <div class="panel"><h2>Cash flow by property</h2><div class="hint">Each colour is one property's rent · service charge and repairs below the line (KES)</div>
         <div class="chartbox"><canvas id="cash2"></canvas></div></div>
     </section>
 
@@ -250,6 +257,8 @@
   const C = { green: '#34D399', red: '#F87171', blue: '#60A5FA', purple: '#A78BFA', amber: '#F59E0B',
     pink: '#F472B6', cyan: '#22D3EE', slate: '#64748B', text: '#E5E7EB', muted: '#9CA3AF', line: '#1F2937', card: '#141A26' };
   const PLATFORM = { IBKR: C.blue, Kraken: C.purple, SIB: C.amber, 'Axys (NSE)': C.pink, Property: C.green };
+  const PROP_COL = ['#34D399', '#22D3EE', '#A78BFA', '#F59E0B', '#F472B6'];
+  const shortName = (nm) => String(nm || '').replace(/ Residence$/, '').replace(/^5 Star Paradise$/, '5 Star');
   const PALETTE = [C.green, C.blue, C.amber, C.purple, C.pink, C.cyan, '#FB923C', '#94A3B8'];
   const $ = (s) => document.querySelector(s);
   const store = {
@@ -489,10 +498,14 @@
       ['SIB', kes(t.sib), sib0.annual ? pct(sib0.annual) + ' a year since start' : 'statement ' + date(sib0.asOf), 'funds', PLATFORM.SIB],
       ['Axys (NSE)', kes(t.axys), axysPending ? 'Dangote IPO · awaiting allotment' : (data.axys || []).length + ' holdings', 'stocks', PLATFORM['Axys (NSE)']],
       ['Property equity', compact(t.property, 'KES'), (data.properties || []).length + ' properties', 'property', PLATFORM.Property],
-      ['Rent this month', kes(rm.received), rm.due ? 'of ' + kes(rm.due) + ' due' : 'log rent in the Sheet', 'property', C.cyan],
+      ['Rent this month', null, null, 'property', C.cyan],
     ];
+    const rp = (data.rent && data.rent.props) || [];
+    const tickOf = (p) => p.status === 'Paid' ? '<span class="up">\u2713</span>' : p.status === 'Part paid' ? '<span style="color:var(--amber)">\u25d0</span>' : '<span style="color:var(--faint)">\u2014</span>';
+    const rentSplit = rp.length ? rp.map(p => `<div class="rl"><span>${esc(shortName(p.name))}</span><span>${p.received ? compact(p.received, 'KES') : 'not yet'} ${tickOf(p)}</span></div>`).join('')
+      : `<div class="s">${kes(rm.received)} received</div>`;
     $('#cards').innerHTML = cards.map(([l, v, s, go, col]) => `<div class="card tap" data-go="${go}">
-      <div class="label"><i class="swatch" style="background:${col}"></i>${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+      <div class="label"><i class="swatch" style="background:${col}"></i>${l}</div>${v === null ? '<div class="split">' + rentSplit + '</div>' : `<div class="v">${v}</div><div class="s">${s}</div>`}</div>`).join('');
     document.querySelectorAll('[data-go]').forEach(c => c.onclick = () => go(c.dataset.go));
 
     // allocation
@@ -527,16 +540,22 @@
   }
 
   function drawCash(id) {
-    const rows = (data.cash || []).filter(r => r.month);
+    const R = data.rent && data.rent.months;
+    if (!R) { // older feed without the split
+      const rows = (data.cash || []).filter(r => r.month);
+      chart(id, { type: 'bar', data: { labels: rows.map(r => date(r.month, { month: 'short', year: '2-digit' })),
+        datasets: [{ label: 'Rent', data: rows.map(r => n(r.rent)), backgroundColor: C.green, borderRadius: 4 }] },
+        options: { scales: { y: axisMoney('KES'), x: { grid: { display: false } } } } });
+      return;
+    }
+    const names = (data.properties || []).map(p => p.name);
+    const ds = names.map((nm, i) => ({ label: shortName(nm) + ' rent', data: R.map(m => n(m.byProp[nm])), backgroundColor: PROP_COL[i % PROP_COL.length], borderRadius: 4, stack: 's' }));
+    ds.push({ label: 'Repairs & other', data: R.map(m => n(m.expenses)), backgroundColor: C.red, borderRadius: 4, stack: 's' });
+    ds.push({ label: 'Service charge', data: R.map(m => n(m.fixed)), backgroundColor: C.slate, borderRadius: 4, stack: 's' });
+    ds.push({ label: 'Net', type: 'line', data: R.map(m => n(m.net)), borderColor: C.text, borderWidth: 2, pointRadius: 2, tension: 0 });
     chart(id, {
       type: 'bar',
-      data: { labels: rows.map(r => date(r.month, { month: 'short', year: '2-digit' })),
-        datasets: [
-          { label: 'Rent', data: rows.map(r => n(r.rent)), backgroundColor: C.green, borderRadius: 4, stack: 's' },
-          { label: 'Repairs & other', data: rows.map(r => n(r.expenses)), backgroundColor: C.red, borderRadius: 4, stack: 's' },
-          { label: 'Service charge & mortgage', data: rows.map(r => n(r.fixed)), backgroundColor: C.slate, borderRadius: 4, stack: 's' },
-          { label: 'Net', type: 'line', data: rows.map(r => n(r.net)), borderColor: C.text, borderWidth: 2, pointRadius: 2, tension: .3 },
-        ] },
+      data: { labels: R.map(m => date(m.month, { month: 'short', year: '2-digit' })), datasets: ds },
       options: { scales: { y: axisMoney('KES'), x: { grid: { display: false } } },
         plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 } } },
           tooltip: { callbacks: { label: (c) => ' ' + c.dataset.label + ': ' + kes(c.raw) } } } },
@@ -671,28 +690,42 @@
   }
 
   function renderProperty() {
-    const ps = data.properties || [], rm = data.rentMonth || {};
+    const ps = data.properties || [];
+    const rent = data.rent || { props: [], months: [], history: [] };
     const value = ps.reduce((a, p) => a + n(p.value), 0), eq = ps.reduce((a, p) => a + n(p.value) - n(p.mortgage), 0);
-    const netRent = ps.reduce((a, p) => a + n(p.net), 0);
-    $('#propCards').innerHTML = [
-      ['Property value', compact(value, 'KES'), 'equity ' + compact(eq, 'KES')],
-      ['Net rent a month', kes(netRent), 'after service charge'],
-      ['Rent received', kes(rm.received), 'this month' + (rm.due ? ' · ' + kes(rm.due) + ' due' : '')],
-    ].map(([l, v, s]) => `<div class="card"><div class="label">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
-    $('#propList').innerHTML = ps.map(p => `<div class="prop">
-        <h3>${esc(p.name)}</h3><div class="loc">${esc(p.type || '')}${p.type ? ' · ' : ''}${esc(p.location || '')}</div>
+    const statusBadge = (st) => `<span class="badge ${st === 'Paid' ? 'ok' : ''}" ${st === 'Not paid' ? 'style="background:#2A1A1E;color:var(--red)"' : ''}>${esc(st)}</span>`;
+    const monthName = date(rent.month || new Date().toISOString(), { month: 'long' });
+    $('#propCards').innerHTML = [['Property value', compact(value, 'KES'), 'equity ' + compact(eq, 'KES'), null]]
+      .concat(rent.props.map((r, i) => [shortName(r.name) + ' · ' + monthName, r.received ? kes(r.received) : '—',
+        `${statusBadge(r.status)} of ${kes(r.due)}`, PROP_COL[i % PROP_COL.length]]))
+      .map(([l, v, s, col]) => `<div class="card"><div class="label">${col ? `<i class="swatch" style="background:${col}"></i>` : ''}${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+
+    $('#propList').innerHTML = ps.map((p, i) => {
+      const r = rent.props.find(x => x.name === p.name) || {};
+      const yr = (rent.months || []).reduce((a, m) => a + n(m.byProp[p.name]), 0);
+      const hist = (rent.history || []).filter(h => h.name === p.name).slice(0, 6);
+      return `<div class="prop">
+        <h3><i class="swatch" style="background:${PROP_COL[i % PROP_COL.length]}"></i>${esc(p.name)}</h3><div class="loc">${esc(p.type || '')}${p.type ? ' · ' : ''}${esc(p.location || '')}</div>
         <div class="kv">
-          <div><span>Value (estimate)</span>${kes(p.value)}</div>
+          <div><span>${esc(monthName)} rent</span>${r.status ? statusBadge(r.status) : '—'} ${r.received ? kes(r.received) : ''}</div>
+          <div><span>Rent / service charge</span>${kes(p.rent)} / ${kes(p.service)}</div>
           <div><span>Net rent / month</span>${kes(p.net)}</div>
+          <div><span>Collected, last 12 months</span>${kes(yr)}</div>
+          <div><span>Value (estimate)</span>${kes(p.value)}</div>
           <div><span>Yield (gross / net)</span>${pct(p.gross)} / ${pct(p.netYield)}</div>
           <div><span>Gain on purchase</span><b class="${cls(p.gain)}">${p.purchase ? signed(kes(p.gain), p.gain) : '—'}</b></div>
+          <div><span>Deposit held</span>${p.deposit ? kes(p.deposit) : '—'}</div>
           <div><span>Tenant</span>${esc(p.tenant || '—')}</div>
           <div><span>Lease</span>${esc(p.leaseLeft || '—')}</div>
           <div><span>Rent due</span>${esc(p.rentDue || '—')}</div>
-          <div><span>Deposit held</span>${p.deposit ? kes(p.deposit) : '—'}</div>
         </div>
+        <div class="rh"><div class="label" style="margin-bottom:4px">Rent history</div>${hist.length ? `<table><tr><th>Month</th><th class="r">Due</th><th class="r">Received</th><th class="hide-sm">Notes</th></tr>` +
+          hist.map(h => `<tr><td>${date(h.month, { month: 'short', year: 'numeric' })}</td><td class="r">${h.due != null ? kes(h.due) : '—'}</td>
+            <td class="r ${n(h.received) >= n(h.due) && h.due ? 'up' : n(h.received) ? '' : 'down'}">${kes(h.received)}${n(h.expenses) ? `<span class="nm">−${kes(h.expenses)} costs</span>` : ''}</td><td class="hide-sm" style="color:var(--faint)">${esc(h.notes)}</td></tr>`).join('') + '</table>'
+          : '<div class="empty" style="text-align:left;padding:6px 0">No rent logged yet</div>'}</div>
         ${p.folder ? `<a href="${esc(p.folder)}" target="_blank" rel="noopener">Open documents ↗</a>` : ''}
-      </div>`).join('') || '<div class="empty">No properties yet</div>';
+      </div>`;
+    }).join('') || '<div class="empty">No properties yet</div>';
     drawCash('cash2');
   }
 
