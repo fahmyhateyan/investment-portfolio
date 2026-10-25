@@ -53,7 +53,7 @@
 
   .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
   @media (min-width: 760px) { .cards { grid-template-columns: repeat(3, 1fr); } }
-  @media (min-width: 1040px) { .cards { grid-template-columns: repeat(6, 1fr); } }
+  @media (min-width: 1040px) { .cards { grid-template-columns: repeat(6, 1fr); } #fundCards { grid-template-columns: repeat(4, 1fr); } }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 15px; min-width: 0; }
   .card .v { font-size: 19px; font-weight: 750; margin: 6px 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card .s { font-size: 11.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -74,6 +74,7 @@
     .hide-sm { display: none; }
     .wrap td .show-sm { display: block !important; }
     table { font-size: 12.5px; }
+    td.r { white-space: nowrap; }
     td, th { padding-left: 3px; padding-right: 3px; }
     td .nm.long { max-width: 105px; }
     td .nm.long { max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -96,6 +97,7 @@
   td { padding: 11px 6px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
   td.r, th.r { text-align: right; }
   tr:last-child td { border-bottom: 0; }
+  tr.sum td { background: var(--card2); }
   .tick { font-weight: 700; } .nm { color: var(--faint); font-size: 11.5px; display: block; margin-top: 2px; }
   .scroll { overflow-x: auto; }
   .show-sm { display: none !important; }
@@ -212,9 +214,11 @@
       <div class="grid2">
         <div class="panel"><h2>Return by year</h2><div class="hint">Weights each deposit by how long it was invested</div>
           <div class="chartbox"><canvas id="sibYears"></canvas></div><div class="hint" id="sibNote" style="margin:10px 0 0"></div></div>
-        <div class="panel"><h2>Money in vs value now</h2><div class="hint">KES</div>
+        <div class="panel"><h2>Your money over time</h2><div class="hint">Each bar is a deposit · line is your running total put in · green dot is value now (KES)</div>
           <div class="chartbox"><canvas id="sibBars"></canvas></div></div>
       </div>
+      <div class="panel" style="margin-bottom:12px"><h2>Every deposit</h2><div class="hint" id="sibTxHint">From your SIB statements, oldest first</div>
+        <div class="scroll"><table id="sibTxTable"></table></div></div>
       <div class="panel"><h2>SIB funds</h2><div class="hint">From your latest statement</div>
         <div class="scroll"><table id="sibTable"></table></div></div>
     </section>
@@ -588,10 +592,21 @@
     const rows = data.sib || [];
     const val = rows.reduce((a, r) => a + n(r.value), 0), inv = rows.reduce((a, r) => a + n(r.invested), 0);
     const r0 = rows[0] || {};
+    const tx = (data.sibTx || []).filter(t => t.date).sort((a, b) => new Date(a.date) - new Date(b.date));
+    const isIn = (t) => /contrib|deposit|top.?up|purchase|subscri/i.test(t.kind + ' ' + t.type);
+    const isOut = (t) => /withdraw|redempt|switch.?out/i.test(t.kind + ' ' + t.type);
+    const isProfit = (t) => /profit|interest|dividend|income/i.test(t.kind + ' ' + t.type);
+    const moves = tx.filter(t => isIn(t) || isOut(t));
+    const deposits = moves.filter(isIn);
+    const putIn = moves.length ? moves.reduce((a, t) => a + (isOut(t) ? -Math.abs(n(t.amount)) : n(t.amount)), 0) : inv;
+    const profit = val - putIn;
+    const asOf = r0.asOf || (tx.length ? tx[tx.length - 1].date : null);
+    const first = deposits[0];
     $('#fundCards').innerHTML = [
-      ['SIB value', kes(val), 'statement to ' + date(r0.asOf)],
-      ['Gain', `<span class="${cls(val - inv)}">${signed(kes(val - inv), val - inv)}</span>`, 'on ' + kes(inv) + ' put in'],
-      ['Annual return', pct(r0.annual), 'since your first deposit'],
+      ['SIB value', kes(val), 'statement to ' + date(asOf)],
+      ['Total put in', kes(putIn), deposits.length ? `${deposits.length} deposit${deposits.length === 1 ? '' : 's'} since ${date(first.date, { month: 'short', year: 'numeric' })}` : 'from your statement'],
+      ['Profit earned', `<span class="${cls(profit)}">${signed(kes(profit), profit)}</span>`, putIn ? `<span class="${cls(profit)}">${signed(pct(profit / putIn), profit)}</span> on what you put in` : ''],
+      ['Annual return', pct(r0.annual), 'allows for when each deposit went in'],
     ].map(([l, v, s]) => `<div class="card"><div class="label">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
     const yrs = (data.sibReturns || []).filter(r => r.year);
     chart('sibYears', {
@@ -602,16 +617,55 @@
     });
     const note = yrs.find(r => r.note);
     $('#sibNote').textContent = note ? note.note : '';
+
+    // deposits over time: bar per deposit, stepped running total, value now at the end
+    let run = 0;
+    const lbl = [], bars = [], line = [], now = [];
+    moves.forEach(t => {
+      const amt = isOut(t) ? -Math.abs(n(t.amount)) : n(t.amount);
+      run += amt;
+      lbl.push(date(t.date, { day: 'numeric', month: 'short', year: '2-digit' }));
+      bars.push(amt); line.push(run); now.push(null);
+    });
+    lbl.push('Now'); bars.push(null); line.push(run); now.push(val);
     chart('sibBars', {
       type: 'bar',
-      data: { labels: rows.map(r => r.fund.replace(/ Fund KES$/, '').replace('Mansa-X ', 'Mansa-X\n')),
-        datasets: [{ label: 'Put in', data: rows.map(r => n(r.invested)), backgroundColor: '#475569', borderRadius: 6, maxBarThickness: 60 },
-          { label: 'Value now', data: rows.map(r => n(r.value)), backgroundColor: C.amber, borderRadius: 6, maxBarThickness: 60 }] },
-      options: { scales: { y: axisMoney('KES'), x: { grid: { display: false } } },
-        plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, boxHeight: 10 } }, tooltip: { callbacks: { label: (c) => ' ' + c.dataset.label + ': ' + kes(c.raw) } } } },
+      data: { labels: lbl, datasets: [
+        { label: 'Deposit', data: bars, backgroundColor: bars.map(b => n(b) < 0 ? C.red : C.amber), borderRadius: 6, maxBarThickness: 46, order: 3 },
+        { label: 'Total put in', type: 'line', data: line, borderColor: '#94A3B8', borderWidth: 2, stepped: true, pointRadius: 3, pointBackgroundColor: '#94A3B8', order: 2 },
+        { label: 'Value now', type: 'line', data: now, borderColor: C.green, backgroundColor: C.green, pointRadius: 7, pointHoverRadius: 8, showLine: false, order: 1 },
+      ] },
+      options: { scales: { y: { ...axisMoney('KES'), beginAtZero: true }, x: { grid: { display: false } } },
+        plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 } } },
+          tooltip: { filter: (c) => c.raw !== null, callbacks: { label: (c) => ' ' + c.dataset.label + ': ' + kes(c.raw) } } } },
     });
-    $('#sibTable').innerHTML = rows.length ? `<tr><th>Fund</th><th class="r">Put in</th><th class="r">Value</th><th class="r">Gain</th><th class="r">A year</th></tr>` +
-      rows.map(r => `<tr><td><span class="tick">${esc(r.fund)}</span><span class="nm">to ${date(r.asOf)}</span></td><td class="r">${kes(r.invested)}</td>
+
+    // every deposit table
+    const end = asOf ? new Date(asOf) : new Date();
+    const held = (d) => {
+      const m = Math.max(0, Math.round((end - new Date(d)) / (30.44 * 864e5)));
+      return m < 1 ? 'under a month' : m < 24 ? m + ' month' + (m === 1 ? '' : 's') : (m / 12).toFixed(1) + ' years';
+    };
+    let tot = 0;
+    const body = tx.filter(t => isIn(t) || isOut(t) || isProfit(t)).map(t => {
+      const amt = n(t.amount);
+      if (isProfit(t)) {
+        return `<tr><td>${date(t.date)}<span class="nm">Profit added by SIB</span></td>
+          <td class="r up">${signed(kes(amt), amt)}</td><td class="r hide-sm">—</td><td class="r">${t.balance != null ? kes(t.balance) : '—'}</td></tr>`;
+      }
+      const v = isOut(t) ? -Math.abs(amt) : amt;
+      tot += v;
+      return `<tr><td>${date(t.date)}<span class="nm">${isOut(t) ? 'Withdrawal' : 'Deposit'}<span class="hide-sm">${t.fund ? ' · ' + esc(String(t.fund).replace(/ Fund KES$/, '')) : ''}</span></span><span class="nm show-sm">held ${held(t.date)}</span></td>
+        <td class="r ${v < 0 ? 'down' : ''}">${kes(v)}</td><td class="r hide-sm">${held(t.date)}</td><td class="r">${kes(tot)}<span class="nm">put in so far</span></td></tr>`;
+    }).join('');
+    $('#sibTxHint').textContent = tx.length ? `From your SIB statements · ${deposits.length} deposits, oldest first` : 'Add statement lines in the Sheet’s SIB Transactions tab';
+    $('#sibTxTable').innerHTML = body ? `<tr><th>Date</th><th class="r">Amount</th><th class="r hide-sm">Invested for</th><th class="r">Running total</th></tr>` + body +
+      `<tr class="sum"><td><b>Total put in</b></td><td class="r"><b>${kes(putIn)}</b></td><td class="hide-sm"></td><td></td></tr>
+       <tr class="sum"><td><b>Profit earned</b></td><td class="r ${cls(profit)}"><b>${signed(kes(profit), profit)}</b></td><td class="hide-sm"></td><td class="r ${cls(profit)}">${putIn ? signed(pct(profit / putIn), profit) : ''}</td></tr>
+       <tr class="sum"><td><b>Value now</b></td><td class="r"><b>${kes(val)}</b></td><td class="hide-sm"></td><td class="r"><span class="nm">to ${date(asOf)}</span></td></tr>`
+      : '<tr><td class="empty">No transactions yet</td></tr>';
+    $('#sibTable').innerHTML = rows.length ? `<tr><th>Fund</th><th class="r hide-sm">Put in</th><th class="r">Value</th><th class="r">Gain</th><th class="r">A year</th></tr>` +
+      rows.map(r => `<tr><td><span class="tick">${esc(String(r.fund).replace(/ Fund KES$/, ''))}</span><span class="nm">to ${date(r.asOf)}</span></td><td class="r hide-sm">${kes(r.invested)}</td>
         <td class="r">${kes(r.value)}</td><td class="r ${cls(r.gain)}">${signed(kes(r.gain), r.gain)}<span class="nm">${pct(r.gainPct)}</span></td><td class="r">${pct(r.annual)}</td></tr>`).join('')
       : '<tr><td class="empty">No SIB funds yet</td></tr>';
   }
