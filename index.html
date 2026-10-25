@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0F17">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Portfolio">
+<meta name="robots" content="noindex, nofollow">
+<title>My Portfolio</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root {
+    --bg: #0B0F17; --card: #141A26; --card2: #1A2232; --line: #1F2937;
+    --text: #E5E7EB; --muted: #9CA3AF; --faint: #6B7280;
+    --green: #34D399; --red: #F87171; --blue: #60A5FA; --purple: #A78BFA;
+    --amber: #F59E0B; --pink: #F472B6; --cyan: #22D3EE;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased; }
+  body { padding: env(safe-area-inset-top) 0 calc(76px + env(safe-area-inset-bottom)); min-height: 100vh; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 18px 16px 24px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  h1 { font-size: 24px; margin: 0; letter-spacing: -.02em; }
+  .sub { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted);
+    background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 6px 11px; white-space: nowrap; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .dot.off { background: var(--amber); }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .iconbtn { background: var(--card); border: 1px solid var(--line); border-radius: 12px; width: 38px; height: 38px;
+    display: grid; place-items: center; }
+  .iconbtn svg { width: 18px; height: 18px; }
+  .spin svg { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hero { background: linear-gradient(135deg, #0F2A24 0%, var(--card) 70%); border: 1px solid #1F3B33;
+    border-radius: 20px; padding: 20px 22px; margin-bottom: 12px; }
+  .label { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+  .big { font-size: clamp(30px, 8vw, 44px); font-weight: 800; letter-spacing: -.02em; margin: 6px 0 2px; }
+  .hero-row { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 8px; }
+  .usd { color: var(--muted); font-size: 18px; font-weight: 700; }
+  .chg { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .up { color: var(--green); } .down { color: var(--red); }
+  .toggle { display: inline-flex; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .toggle button { background: none; border: 0; padding: 5px 12px; border-radius: 7px; font-size: 12px; color: var(--muted); }
+  .toggle button.on { background: var(--card2); color: var(--text); }
+
+  .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+  @media (min-width: 760px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 1040px) { .cards { grid-template-columns: repeat(6, 1fr); } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 15px; min-width: 0; }
+  .card .v { font-size: 19px; font-weight: 750; margin: 6px 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .s { font-size: 11.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card.tap { cursor: pointer; } .card.tap:active { transform: scale(.98); }
+  .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
+
+  .grid2 { display: grid; gap: 12px; grid-template-columns: 1fr; margin-bottom: 12px; }
+  @media (min-width: 900px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; min-width: 0; }
+  .panel h2 { font-size: 15px; margin: 0 0 2px; }
+  .panel .hint { color: var(--faint); font-size: 12px; margin-bottom: 12px; }
+  .chartbox { position: relative; height: 260px; }
+  .donutwrap { display: grid; grid-template-columns: 170px 1fr; gap: 14px; align-items: center; }
+  @media (max-width: 560px) {
+    .donutwrap { grid-template-columns: 1fr; justify-items: center; }
+    .donut { width: 190px; height: 190px; }
+    .legend { width: 100%; }
+    .hide-sm { display: none; }
+    .wrap td .show-sm { display: block !important; }
+    table { font-size: 12.5px; }
+    td, th { padding-left: 3px; padding-right: 3px; }
+    td .nm.long { max-width: 105px; }
+    td .nm.long { max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  }
+  .donut { position: relative; height: 170px; }
+  .donut .c { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; pointer-events: none; }
+  .donut .c b { font-size: 16px; display: block; } .donut .c span { font-size: 11px; color: var(--muted); }
+  .legend { display: grid; gap: 9px; font-size: 13px; }
+  .legend div { display: flex; justify-content: space-between; gap: 8px; }
+  .legend span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .tree { position: relative; height: 300px; border-radius: 12px; overflow: hidden; }
+  .tree div { position: absolute; padding: 7px 8px; overflow: hidden; color: #0B0F17; font-size: 12px;
+    font-weight: 700; border: 2px solid var(--card); border-radius: 8px; line-height: 1.25; }
+  .tree div small { display: block; font-weight: 600; opacity: .75; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--faint); font-weight: 600; font-size: 11px; text-transform: uppercase;
+    letter-spacing: .06em; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  td { padding: 11px 6px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  td.r, th.r { text-align: right; }
+  tr:last-child td { border-bottom: 0; }
+  .tick { font-weight: 700; } .nm { color: var(--faint); font-size: 11.5px; display: block; margin-top: 2px; }
+  .scroll { overflow-x: auto; }
+  .show-sm { display: none !important; }
+  .badge { display: inline-block; font-size: 11px; padding: 3px 8px; border-radius: 999px; background: #2A2A1E; color: var(--amber); }
+  .badge.ok { background: #13281F; color: var(--green); }
+
+  .prop { background: var(--card2); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+  .prop h3 { margin: 0; font-size: 15px; } .prop .loc { color: var(--faint); font-size: 12px; margin: 2px 0 10px; }
+  .kv { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 14px; font-size: 13px; }
+  @media (min-width: 700px) { .kv { grid-template-columns: repeat(4, 1fr); } }
+  .kv span { display: block; color: var(--faint); font-size: 11px; margin-bottom: 2px; }
+  .prop a { color: var(--cyan); font-size: 13px; text-decoration: none; display: inline-block; margin-top: 12px; }
+
+  nav { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(11,15,23,.92); backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); z-index: 5; }
+  nav .in { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); }
+  nav button { background: none; border: 0; padding: 9px 0 8px; color: var(--faint); font-size: 10.5px; display: grid; justify-items: center; gap: 3px; }
+  nav button svg { width: 21px; height: 21px; }
+  nav button.on { color: var(--green); }
+  .view { display: none; } .view.on { display: block; }
+
+  .setup { max-width: 460px; margin: 12vh auto 0; padding: 0 16px; }
+  .setup .panel { padding: 22px; }
+  .setup textarea { width: 100%; height: 96px; background: var(--bg); color: var(--text); border: 1px solid var(--line);
+    border-radius: 12px; padding: 10px; font: 12px ui-monospace, Menlo, monospace; margin: 12px 0; resize: none; }
+  .primary { background: var(--green); color: #052016; border: 0; border-radius: 12px; padding: 12px 16px; font-weight: 700; width: 100%; }
+  .err { color: var(--red); font-size: 13px; margin-top: 10px; min-height: 18px; }
+  .empty { color: var(--faint); font-size: 13px; padding: 18px 0; text-align: center; }
+  .foot { color: var(--faint); font-size: 11.5px; text-align: center; margin-top: 18px; line-height: 1.6; }
+  .foot button { background: none; border: 0; color: var(--faint); text-decoration: underline; font-size: 11.5px; }
+</style>
+</head>
+<body>
+
+<div id="setup" class="setup" hidden>
+  <div class="panel">
+    <h1 style="font-size:20px">Connect your dashboard</h1>
+    <p class="sub" style="font-size:13px;line-height:1.5">Paste the setup key from your Google Sheet
+      (Portfolio menu &gt; 4. Show dashboard access code). You only do this once on each device.</p>
+    <textarea id="key" placeholder="Paste setup key here" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+    <button class="primary" id="connect">Connect</button>
+    <div class="err" id="setupErr"></div>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1 id="title">My Portfolio</h1>
+        <div class="sub" id="today"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill" id="status"><span class="dot"></span><span>—</span></span>
+        <button class="iconbtn" id="refresh" aria-label="Refresh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- OVERVIEW -->
+    <section class="view on" id="v-overview">
+      <div class="hero">
+        <div class="hero-row">
+          <div class="label">Net worth</div>
+          <div class="toggle" id="ccy"><button data-c="KES" class="on">KES</button><button data-c="USD">USD</button></div>
+        </div>
+        <div class="big" id="nw">—</div>
+        <div class="hero-row">
+          <div class="chg" id="chg"></div>
+          <div class="usd" id="nw2"></div>
+        </div>
+      </div>
+      <div class="cards" id="cards"></div>
+      <div class="grid2">
+        <div class="panel"><h2>Allocation</h2><div class="hint">Share of net worth</div>
+          <div class="donutwrap"><div class="donut"><canvas id="donut"></canvas><div class="c" id="donutC"></div></div><div class="legend" id="legend"></div></div>
+        </div>
+        <div class="panel"><h2>Net worth over time</h2><div class="hint" id="histHint">Saved once a day</div>
+          <div class="chartbox"><canvas id="hist"></canvas></div></div>
+      </div>
+      <div class="grid2">
+        <div class="panel"><h2>Everything you own</h2><div class="hint">Box size = value</div><div class="tree" id="tree"></div></div>
+        <div class="panel"><h2>Property cash flow</h2><div class="hint">Last 12 months, KES</div>
+          <div class="chartbox"><canvas id="cash"></canvas></div></div>
+      </div>
+    </section>
+
+    <!-- STOCKS -->
+    <section class="view" id="v-stocks">
+      <div class="cards" id="stockCards"></div>
+      <div class="grid2">
+        <div class="panel"><h2>IBKR holdings</h2><div class="hint" id="ibkrHint"></div>
+          <div class="donutwrap"><div class="donut"><canvas id="ibkrDonut"></canvas><div class="c" id="ibkrC"></div></div><div class="legend" id="ibkrLegend"></div></div></div>
+        <div class="panel"><h2>Profit / loss by holding</h2><div class="hint">USD, since you bought</div>
+          <div class="chartbox"><canvas id="ibkrPl"></canvas></div></div>
+      </div>
+      <div class="panel" style="margin-bottom:12px"><h2>IBKR positions</h2><div class="hint">Live prices for US-listed ETFs and stocks</div>
+        <div class="scroll"><table id="ibkrTable"></table></div></div>
+      <div class="panel"><h2>Axys (Nairobi Securities Exchange)</h2><div class="hint">KES</div>
+        <div class="scroll"><table id="axysTable"></table></div></div>
+    </section>
+
+    <!-- CRYPTO -->
+    <section class="view" id="v-crypto">
+      <div class="cards" id="cryptoCards"></div>
+      <div class="panel"><h2>Kraken</h2><div class="hint" id="krakenHint"></div>
+        <div id="krakenBody"></div></div>
+    </section>
+
+    <!-- FUNDS -->
+    <section class="view" id="v-funds">
+      <div class="cards" id="fundCards"></div>
+      <div class="grid2">
+        <div class="panel"><h2>Return by year</h2><div class="hint">Weights each deposit by how long it was invested</div>
+          <div class="chartbox"><canvas id="sibYears"></canvas></div><div class="hint" id="sibNote" style="margin:10px 0 0"></div></div>
+        <div class="panel"><h2>Money in vs value now</h2><div class="hint">KES</div>
+          <div class="chartbox"><canvas id="sibBars"></canvas></div></div>
+      </div>
+      <div class="panel"><h2>SIB funds</h2><div class="hint">From your latest statement</div>
+        <div class="scroll"><table id="sibTable"></table></div></div>
+    </section>
+
+    <!-- PROPERTY -->
+    <section class="view" id="v-property">
+      <div class="cards" id="propCards"></div>
+      <div class="panel" style="margin-bottom:12px"><h2>Your properties</h2><div class="hint">Values are estimates; tenant details from your agreements</div>
+        <div id="propList"></div></div>
+      <div class="panel"><h2>Cash flow</h2><div class="hint">Rent in, service charge, mortgage and repairs out (KES)</div>
+        <div class="chartbox"><canvas id="cash2"></canvas></div></div>
+    </section>
+
+    <div class="foot" id="foot"></div>
+  </div>
+
+  <nav><div class="in">
+    <button data-v="overview" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Overview</button>
+    <button data-v="stocks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Stocks</button>
+    <button data-v="crypto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 8h4a2 2 0 0 1 0 4h-4m0 0h4.5a2 2 0 0 1 0 4H9.5V8m1.5-2v2m0 8v2m2-12v2m0 8v2"/></svg>Crypto</button>
+    <button data-v="funds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M6 20V10m4 10V6m4 14v-8m4 8V4"/></svg>Funds</button>
+    <button data-v="property"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Property</button>
+  </div></nav>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(() => {
+  const C = { green: '#34D399', red: '#F87171', blue: '#60A5FA', purple: '#A78BFA', amber: '#F59E0B',
+    pink: '#F472B6', cyan: '#22D3EE', slate: '#64748B', text: '#E5E7EB', muted: '#9CA3AF', line: '#1F2937', card: '#141A26' };
+  const PLATFORM = { IBKR: C.blue, Kraken: C.purple, SIB: C.amber, 'Axys (NSE)': C.pink, Property: C.green };
+  const PALETTE = [C.green, C.blue, C.amber, C.purple, C.pink, C.cyan, '#FB923C', '#94A3B8'];
+  const $ = (s) => document.querySelector(s);
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } },
+    del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+  };
+
+  let cfg = store.get('pf_cfg');
+  let data = store.get('pf_data');
+  let ccy = store.get('pf_ccy') || 'KES';
+  let charts = {};
+  let fresh = false;
+
+  // ---------- formatting ----------
+  const n = (v) => (typeof v === 'number' && isFinite(v)) ? v : 0;
+  const kes = (v) => 'KES ' + Math.round(n(v)).toLocaleString('en-US');
+  const usd = (v, d = 0) => (n(v) < 0 ? '-$' : '$') + Math.abs(n(v)).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const pct = (v, d = 1) => (typeof v === 'number' && isFinite(v)) ? (v * 100).toFixed(d) + '%' : '—';
+  const signed = (s, v) => (n(v) > 0 ? '+' : '') + s;
+  const compact = (v, cur) => {
+    const a = Math.abs(n(v)), p = cur === 'USD' ? '$' : 'KES ';
+    const s = a >= 1e9 ? (a / 1e9).toFixed(2) + 'B' : a >= 1e6 ? (a / 1e6).toFixed(2) + 'M' : a >= 1e3 ? (a / 1e3).toFixed(1) + 'K' : a.toFixed(0);
+    return (n(v) < 0 ? '-' : '') + p + s;
+  };
+  const inCcy = (vKes) => ccy === 'USD' ? n(vKes) / (data.fx || 129) : n(vKes);
+  const money = (vKes) => ccy === 'USD' ? usd(inCcy(vKes)) : kes(vKes);
+  const date = (iso, opts = { day: 'numeric', month: 'short', year: 'numeric' }) => iso ? new Date(iso).toLocaleDateString('en-GB', opts) : '—';
+  const ago = (iso) => {
+    if (!iso) return 'never';
+    const m = Math.round((Date.now() - new Date(iso)) / 60000);
+    if (m < 1) return 'just now'; if (m < 60) return m + ' min ago';
+    const h = Math.round(m / 60); if (h < 48) return h + ' h ago';
+    return date(iso);
+  };
+  const cls = (v) => n(v) > 0 ? 'up' : n(v) < 0 ? 'down' : '';
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ---------- setup ----------
+  function parseKey(raw) {
+    raw = (raw || '').trim();
+    if (!raw) return null;
+    try {
+      const b = raw.replace(/-/g, '+').replace(/_/g, '/');
+      const txt = atob(b + '==='.slice((b.length + 3) % 4));
+      const [url, code] = txt.split('|');
+      if (/^https:\/\/script\.google(usercontent)?\.com\//.test(url) && code) return { url, code };
+    } catch (e) {}
+    return null;
+  }
+  function fromHash() {
+    const m = location.hash.match(/key=([^&]+)/);
+    if (!m) return null;
+    const c = parseKey(decodeURIComponent(m[1]));
+    history.replaceState(null, '', location.pathname);
+    return c;
+  }
+
+  async function fetchData() {
+    const r = await fetch(cfg.url + '?code=' + encodeURIComponent(cfg.code), { cache: 'no-store' });
+    const j = await r.json();
+    if (j.error) throw new Error(j.error);
+    return j;
+  }
+
+  $('#connect').onclick = async () => {
+    const c = parseKey($('#key').value);
+    const err = $('#setupErr');
+    if (!c) { err.textContent = 'That key doesn’t look right. Copy it again from the Sheet.'; return; }
+    err.style.color = 'var(--muted)'; err.textContent = 'Connecting…';
+    cfg = c;
+    try {
+      data = await fetchData();
+      store.set('pf_cfg', cfg); store.set('pf_data', data); fresh = true;
+      showApp();
+    } catch (e) {
+      err.style.color = 'var(--red)';
+      err.textContent = 'Couldn’t connect: ' + e.message;
+    }
+  };
+
+  // ---------- refresh ----------
+  async function refresh(manual) {
+    const btn = $('#refresh');
+    btn.classList.add('spin');
+    try {
+      data = await fetchData();
+      store.set('pf_data', data);
+      fresh = true;
+      render();
+    } catch (e) {
+      fresh = false;
+      setStatus();
+      if (manual) alert(navigator.onLine ? 'Couldn’t refresh: ' + e.message : 'You’re offline. Showing your last saved numbers.');
+    } finally {
+      btn.classList.remove('spin');
+    }
+  }
+  $('#refresh').onclick = () => refresh(true);
+  window.addEventListener('online', () => refresh(false));
+  window.addEventListener('offline', setStatus);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && cfg) refresh(false); });
+
+  function setStatus() {
+    const off = !navigator.onLine || !fresh;
+    $('#status').innerHTML = `<span class="dot ${off ? 'off' : ''}"></span><span>${off ? 'Offline · ' : ''}${ago(data && data.generated)}</span>`;
+  }
+
+  // ---------- navigation ----------
+  document.querySelectorAll('nav button').forEach(b => b.onclick = () => go(b.dataset.v));
+  function go(v) {
+    document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x.dataset.v === v));
+    document.querySelectorAll('.view').forEach(x => x.classList.toggle('on', x.id === 'v-' + v));
+    store.set('pf_view', v);
+    window.scrollTo(0, 0);
+    Object.values(charts).forEach(c => c && c.resize());
+    if (v === 'overview') drawTree();
+  }
+  document.querySelectorAll('#ccy button').forEach(b => b.onclick = () => { ccy = b.dataset.c; store.set('pf_ccy', ccy); render(); });
+
+  // ---------- charts ----------
+  if (window.Chart) {
+    Chart.defaults.color = C.muted;
+    Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+    Chart.defaults.borderColor = C.line;
+    Chart.defaults.plugins.legend.display = false;
+    Chart.defaults.plugins.tooltip.backgroundColor = '#0B0F17';
+    Chart.defaults.plugins.tooltip.borderColor = C.line;
+    Chart.defaults.plugins.tooltip.borderWidth = 1;
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.maintainAspectRatio = false;
+  }
+  function chart(id, config) {
+    if (!window.Chart) return;
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(document.getElementById(id), config);
+  }
+  const axisMoney = (cur) => ({ ticks: { callback: (v) => compact(v, cur) }, grid: { color: C.line } });
+
+  function donut(id, labels, values, colors, fmt) {
+    chart(id, {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: C.card, borderWidth: 3, hoverOffset: 4 }] },
+      options: { cutout: '72%', plugins: { tooltip: { callbacks: { label: (c) => ' ' + c.label + ': ' + fmt(c.raw) } } } },
+    });
+  }
+  function legend(el, labels, values, colors, fmt) {
+    const total = values.reduce((a, b) => a + b, 0) || 1;
+    el.innerHTML = labels.map((l, i) => `<div><span><i class="swatch" style="background:${colors[i]}"></i>${esc(l)}</span>
+      <span>${fmt(values[i])} · ${(values[i] / total * 100).toFixed(1)}%</span></div>`).join('');
+  }
+
+  // ---------- treemap (squarified) ----------
+  function squarify(items, x, y, w, h) {
+    const out = [];
+    items = items.filter(i => i.v > 0).sort((a, b) => b.v - a.v);
+    const total = items.reduce((a, b) => a + b.v, 0);
+    if (!total) return out;
+    const scale = (w * h) / total;
+    let rest = items.map(i => ({ ...i, a: i.v * scale }));
+    while (rest.length) {
+      const side = Math.min(w, h);
+      let row = [rest[0]], best = worst(row, side);
+      for (let i = 1; i < rest.length; i++) {
+        const next = worst([...row, rest[i]], side);
+        if (next > best) break;
+        row.push(rest[i]); best = next;
+      }
+      const sum = row.reduce((a, b) => a + b.a, 0);
+      if (w >= h) {
+        const cw = sum / h; let cy = y;
+        row.forEach(r => { const rh = r.a / cw; out.push({ ...r, x, y: cy, w: cw, h: rh }); cy += rh; });
+        x += cw; w -= cw;
+      } else {
+        const ch = sum / w; let cx = x;
+        row.forEach(r => { const rw = r.a / ch; out.push({ ...r, x: cx, y, w: rw, h: ch }); cx += rw; });
+        y += ch; h -= ch;
+      }
+      rest = rest.slice(row.length);
+    }
+    return out;
+  }
+  function worst(row, side) {
+    const s = row.reduce((a, b) => a + b.a, 0), mx = Math.max(...row.map(r => r.a)), mn = Math.min(...row.map(r => r.a));
+    return Math.max(side * side * mx / (s * s), (s * s) / (side * side * mn));
+  }
+  function drawTree() {
+    const el = $('#tree'); if (!el || !data) return;
+    const fx = data.fx || 129;
+    const items = [];
+    (data.ibkr || []).forEach(r => items.push({ l: r.symbol, g: 'IBKR', v: n(r.value) * fx }));
+    if (n(data.ibkrCash) > 0) items.push({ l: 'IBKR cash', g: 'IBKR', v: n(data.ibkrCash) * fx });
+    (data.kraken || []).forEach(r => items.push({ l: r.asset, g: 'Kraken', v: n(r.value) * fx }));
+    (data.sib || []).forEach(r => items.push({ l: r.fund.replace(/ KES$/, ''), g: 'SIB', v: n(r.value) }));
+    (data.axys || []).forEach(r => items.push({ l: r.ticker || r.name, g: 'Axys (NSE)', v: n(r.value) }));
+    (data.properties || []).forEach(r => items.push({ l: r.name, g: 'Property', v: n(r.value) - n(r.mortgage) }));
+    const total = items.reduce((a, b) => a + Math.max(b.v, 0), 0);
+    const W = el.clientWidth, H = el.clientHeight;
+    el.innerHTML = squarify(items, 0, 0, W, H).map(b => {
+      const share = b.v / total * 100;
+      const small = b.w < 48 || b.h < 34;
+      return `<div title="${esc(b.l)}: ${money(b.v)}" style="left:${b.x}px;top:${b.y}px;width:${b.w}px;height:${b.h}px;background:${PLATFORM[b.g]}">
+        ${small ? '' : `${esc(b.l)}<small>${share < 0.1 ? '<0.1' : share.toFixed(1)}%</small>`}</div>`;
+    }).join('');
+  }
+  window.addEventListener('resize', () => { clearTimeout(window._t); window._t = setTimeout(drawTree, 150); });
+
+  // ---------- render ----------
+  function render() {
+    if (!data) return;
+    const t = data.totals || {}, fx = data.fx || 129;
+    $('#today').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    document.querySelectorAll('#ccy button').forEach(b => b.classList.toggle('on', b.dataset.c === ccy));
+    setStatus();
+
+    // hero
+    $('#nw').textContent = money(t.netKes);
+    $('#nw2').textContent = ccy === 'KES' ? usd(t.netUsd) : kes(t.netKes);
+    const hist = (data.history || []).filter(h => h[0] && n(h[1]) > 0);
+    const cut = Date.now() - 30 * 864e5, today0 = new Date().setHours(0, 0, 0, 0);
+    const base = hist.find(h => new Date(h[0]) >= cut && new Date(h[0]) < today0);
+    if (base) {
+      const d = n(t.netKes) - n(base[1]), p = d / n(base[1]);
+      $('#chg').innerHTML = `<span class="${cls(d)}">${d >= 0 ? '▲' : '▼'} ${compact(Math.abs(inCcy(d)), ccy)} (${(p * 100).toFixed(1)}%)</span> in the last 30 days · USD/KES ${fx.toFixed(2)}`;
+    } else {
+      $('#chg').textContent = 'USD/KES ' + fx.toFixed(2) + ' · 30-day change appears once there’s history';
+    }
+
+    // overview cards
+    const ibkrPl = (data.ibkr || []).reduce((a, r) => a + n(r.pl), 0);
+    const sib0 = (data.sib || [])[0] || {};
+    const axysPending = (data.axys || []).some(a => /applied/i.test(a.status || ''));
+    const rm = data.rentMonth || {};
+    const cards = [
+      ['IBKR', usd(n(t.ibkr) / fx), `${(data.ibkr || []).length} holdings · <span class="${cls(ibkrPl)}">${signed(usd(ibkrPl), ibkrPl)}</span>`, 'stocks', PLATFORM.IBKR],
+      ['Kraken', (data.kraken || []).length ? usd(n(t.kraken) / fx) : 'Not linked', data.krakenUpdated ? 'updated ' + ago(data.krakenUpdated) : 'add your read-only key', 'crypto', PLATFORM.Kraken],
+      ['SIB', kes(t.sib), sib0.annual ? pct(sib0.annual) + ' a year since start' : 'statement ' + date(sib0.asOf), 'funds', PLATFORM.SIB],
+      ['Axys (NSE)', kes(t.axys), axysPending ? 'Dangote IPO · awaiting allotment' : (data.axys || []).length + ' holdings', 'stocks', PLATFORM['Axys (NSE)']],
+      ['Property equity', compact(t.property, 'KES'), (data.properties || []).length + ' properties', 'property', PLATFORM.Property],
+      ['Rent this month', kes(rm.received), rm.due ? 'of ' + kes(rm.due) + ' due' : 'log rent in the Sheet', 'property', C.cyan],
+    ];
+    $('#cards').innerHTML = cards.map(([l, v, s, go, col]) => `<div class="card tap" data-go="${go}">
+      <div class="label"><i class="swatch" style="background:${col}"></i>${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+    document.querySelectorAll('[data-go]').forEach(c => c.onclick = () => go(c.dataset.go));
+
+    // allocation
+    const alloc = [['Property', t.property], ['SIB', t.sib], ['IBKR', t.ibkr], ['Axys (NSE)', t.axys], ['Kraken', t.kraken]]
+      .filter(a => n(a[1]) > 0);
+    const aL = alloc.map(a => a[0]), aV = alloc.map(a => inCcy(a[1])), aC = aL.map(l => PLATFORM[l]);
+    const fmtC = (v) => compact(v, ccy);
+    donut('donut', aL, aV, aC, fmtC);
+    $('#donutC').innerHTML = `<div><b>${compact(inCcy(t.netKes), ccy)}</b><span>total</span></div>`;
+    legend($('#legend'), aL, aV, aC, fmtC);
+
+    // history
+    $('#histHint').textContent = hist.length < 2 ? 'Builds up automatically, one point a day' : hist.length + ' days saved';
+    const hv = hist.map(h => ccy === 'USD' ? n(h[2]) : n(h[1]));
+    const lo = Math.min(...hv), hi = Math.max(...hv), pad = Math.max((hi - lo) * 0.25, hi * 0.01);
+    chart('hist', {
+      type: 'line',
+      data: { labels: hist.map(h => date(h[0], { day: 'numeric', month: 'short' })),
+        datasets: [{ data: hv, borderColor: C.green, borderWidth: 3, tension: .35, pointRadius: hist.length < 3 ? 4 : 0,
+          fill: true, backgroundColor: (ctx) => { const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 260); g.addColorStop(0, 'rgba(52,211,153,.28)'); g.addColorStop(1, 'rgba(52,211,153,0)'); return g; } }] },
+      options: { scales: { y: { ...axisMoney(ccy), min: hv.length ? lo - pad : undefined, max: hv.length ? hi + pad : undefined }, x: { grid: { display: false } } },
+        plugins: { tooltip: { callbacks: { label: (c) => ' ' + (ccy === 'USD' ? usd(c.raw) : kes(c.raw)) } } } },
+    });
+
+    drawTree();
+    drawCash('cash');
+    renderStocks(); renderCrypto(); renderFunds(); renderProperty();
+
+    $('#foot').innerHTML = `Data from your Google Sheet · generated ${data.generated ? new Date(data.generated).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}<br>
+      IBKR positions to ${date(data.ibkrAsOf)} · Kraken ${ago(data.krakenUpdated)}<br><button id="disconnect">Disconnect this device</button>`;
+    $('#disconnect').onclick = () => { if (confirm('Remove the setup key and saved numbers from this device?')) { store.del('pf_cfg'); store.del('pf_data'); location.reload(); } };
+  }
+
+  function drawCash(id) {
+    const rows = (data.cash || []).filter(r => r.month);
+    chart(id, {
+      type: 'bar',
+      data: { labels: rows.map(r => date(r.month, { month: 'short', year: '2-digit' })),
+        datasets: [
+          { label: 'Rent', data: rows.map(r => n(r.rent)), backgroundColor: C.green, borderRadius: 4, stack: 's' },
+          { label: 'Repairs & other', data: rows.map(r => n(r.expenses)), backgroundColor: C.red, borderRadius: 4, stack: 's' },
+          { label: 'Service charge & mortgage', data: rows.map(r => n(r.fixed)), backgroundColor: C.slate, borderRadius: 4, stack: 's' },
+          { label: 'Net', type: 'line', data: rows.map(r => n(r.net)), borderColor: C.text, borderWidth: 2, pointRadius: 2, tension: .3 },
+        ] },
+      options: { scales: { y: axisMoney('KES'), x: { grid: { display: false } } },
+        plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 } } },
+          tooltip: { callbacks: { label: (c) => ' ' + c.dataset.label + ': ' + kes(c.raw) } } } },
+    });
+  }
+
+  function renderStocks() {
+    const fx = data.fx || 129, rows = data.ibkr || [];
+    const val = rows.reduce((a, r) => a + n(r.value), 0), cost = rows.reduce((a, r) => a + n(r.cost), 0), pl = val - cost;
+    const ax = data.axys || [], axV = ax.reduce((a, r) => a + n(r.value), 0);
+    $('#stockCards').innerHTML = [
+      ['IBKR value', usd(val + n(data.ibkrCash)), 'incl. ' + usd(data.ibkrCash, 2) + ' cash'],
+      ['IBKR profit / loss', `<span class="${cls(pl)}">${signed(usd(pl), pl)}</span>`, cost ? `<span class="${cls(pl)}">${signed(pct(pl / cost), pl)}</span> on ${usd(cost)} invested` : ''],
+      ['Axys (NSE)', kes(axV), ax.length + ' holding' + (ax.length === 1 ? '' : 's')],
+    ].map(([l, v, s]) => `<div class="card"><div class="label">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+    $('#ibkrHint').textContent = 'Positions to ' + date(data.ibkrAsOf) + ' · USD';
+    const L = rows.map(r => r.symbol), V = rows.map(r => n(r.value)), Cc = rows.map((_, i) => PALETTE[(i + 1) % PALETTE.length]);
+    donut('ibkrDonut', L, V, Cc, (v) => usd(v));
+    $('#ibkrC').innerHTML = `<div><b>${usd(val)}</b><span>invested now</span></div>`;
+    legend($('#ibkrLegend'), L, V, Cc, (v) => usd(v));
+    const sorted = [...rows].sort((a, b) => n(a.pl) - n(b.pl));
+    chart('ibkrPl', {
+      type: 'bar',
+      data: { labels: sorted.map(r => r.symbol), datasets: [{ data: sorted.map(r => n(r.pl)), backgroundColor: sorted.map(r => n(r.pl) >= 0 ? C.green : C.red), borderRadius: 5 }] },
+      options: { indexAxis: 'y', scales: { x: { ticks: { callback: (v) => usd(v) }, grid: { color: C.line } }, y: { grid: { display: false } } },
+        plugins: { tooltip: { callbacks: { label: (c) => ' ' + usd(c.raw, 2) } } } },
+    });
+    $('#ibkrTable').innerHTML = rows.length ? `<tr><th>Holding</th><th class="r hide-sm">Units</th><th class="r hide-sm">Price</th><th class="r">Value</th><th class="r">P/L</th></tr>` +
+      rows.map(r => `<tr><td><span class="tick">${esc(r.symbol)}</span><span class="nm long">${esc(r.name)}</span><span class="nm show-sm">${n(r.qty).toLocaleString('en-US', { maximumFractionDigits: 2 })} units @ ${usd(r.price, 2)}</span></td>
+        <td class="r hide-sm">${n(r.qty).toLocaleString('en-US', { maximumFractionDigits: 4 })}</td><td class="r hide-sm">${usd(r.price, 2)}</td>
+        <td class="r">${usd(r.value, 2)}</td><td class="r ${cls(r.pl)}">${signed(usd(r.pl, 2), r.pl)}<span class="nm">${r.cost ? signed(pct(n(r.pl) / n(r.cost)), r.pl) : ''}</span></td></tr>`).join('')
+      : '<tr><td class="empty">No IBKR positions yet</td></tr>';
+    $('#axysTable').innerHTML = ax.length ? `<tr><th>Holding</th><th class="r">Units</th><th class="r hide-sm">Price</th><th class="r">Value</th><th>Status</th></tr>` +
+      ax.map(r => `<tr><td><span class="tick">${esc(r.ticker || r.name)}</span><span class="nm long">${esc(r.name)}</span></td>
+        <td class="r">${n(r.units).toLocaleString('en-US')}</td><td class="r hide-sm">KES ${n(r.price || r.paid).toFixed(2)}</td><td class="r">${kes(r.value)}</td>
+        <td><span class="badge ${/applied/i.test(r.status) ? '' : 'ok'}">${esc(r.status || '—')}</span></td></tr>`).join('')
+      : '<tr><td class="empty">No NSE holdings yet</td></tr>';
+  }
+
+  function renderCrypto() {
+    const rows = data.kraken || [], val = rows.reduce((a, r) => a + n(r.value), 0);
+    $('#cryptoCards').innerHTML = `<div class="card"><div class="label">Kraken total</div><div class="v">${rows.length ? usd(val) : '—'}</div>
+      <div class="s">${rows.length ? kes(val * (data.fx || 129)) : 'not linked yet'}</div></div>`;
+    $('#krakenHint').textContent = data.krakenUpdated ? 'Updated ' + ago(data.krakenUpdated) + ' · refreshes every 30 minutes' : '';
+    $('#krakenBody').innerHTML = rows.length
+      ? `<div class="scroll"><table><tr><th>Asset</th><th class="r">Amount</th><th class="r">Price</th><th class="r">Value</th></tr>` +
+        rows.map(r => `<tr><td class="tick">${esc(r.asset)}</td><td class="r">${n(r.amount).toLocaleString('en-US', { maximumFractionDigits: 8 })}</td>
+          <td class="r">${r.price === '' ? '—' : usd(r.price, 2)}</td><td class="r">${r.value === '' ? '—' : usd(r.value, 2)}</td></tr>`).join('') + '</table></div>'
+      : `<div class="empty">Kraken isn’t linked yet.<br>In the Google Sheet: Portfolio menu › 1. Set Kraken keys (read-only key, “Query Funds” only).</div>`;
+  }
+
+  function renderFunds() {
+    const rows = data.sib || [];
+    const val = rows.reduce((a, r) => a + n(r.value), 0), inv = rows.reduce((a, r) => a + n(r.invested), 0);
+    const r0 = rows[0] || {};
+    $('#fundCards').innerHTML = [
+      ['SIB value', kes(val), 'statement to ' + date(r0.asOf)],
+      ['Gain', `<span class="${cls(val - inv)}">${signed(kes(val - inv), val - inv)}</span>`, 'on ' + kes(inv) + ' put in'],
+      ['Annual return', pct(r0.annual), 'since your first deposit'],
+    ].map(([l, v, s]) => `<div class="card"><div class="label">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+    const yrs = (data.sibReturns || []).filter(r => r.year);
+    chart('sibYears', {
+      type: 'bar',
+      data: { labels: yrs.map(r => String(r.year)), datasets: [{ data: yrs.map(r => n(r.ret) * 100), backgroundColor: C.amber, borderRadius: 6, maxBarThickness: 70 }] },
+      options: { scales: { y: { ticks: { callback: (v) => v + '%' }, grid: { color: C.line }, beginAtZero: true }, x: { grid: { display: false } } },
+        plugins: { tooltip: { callbacks: { label: (c) => ' ' + c.raw.toFixed(1) + '%' } } } },
+    });
+    const note = yrs.find(r => r.note);
+    $('#sibNote').textContent = note ? note.note : '';
+    chart('sibBars', {
+      type: 'bar',
+      data: { labels: rows.map(r => r.fund.replace(/ Fund KES$/, '').replace('Mansa-X ', 'Mansa-X\n')),
+        datasets: [{ label: 'Put in', data: rows.map(r => n(r.invested)), backgroundColor: '#475569', borderRadius: 6, maxBarThickness: 60 },
+          { label: 'Value now', data: rows.map(r => n(r.value)), backgroundColor: C.amber, borderRadius: 6, maxBarThickness: 60 }] },
+      options: { scales: { y: axisMoney('KES'), x: { grid: { display: false } } },
+        plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, boxHeight: 10 } }, tooltip: { callbacks: { label: (c) => ' ' + c.dataset.label + ': ' + kes(c.raw) } } } },
+    });
+    $('#sibTable').innerHTML = rows.length ? `<tr><th>Fund</th><th class="r">Put in</th><th class="r">Value</th><th class="r">Gain</th><th class="r">A year</th></tr>` +
+      rows.map(r => `<tr><td><span class="tick">${esc(r.fund)}</span><span class="nm">to ${date(r.asOf)}</span></td><td class="r">${kes(r.invested)}</td>
+        <td class="r">${kes(r.value)}</td><td class="r ${cls(r.gain)}">${signed(kes(r.gain), r.gain)}<span class="nm">${pct(r.gainPct)}</span></td><td class="r">${pct(r.annual)}</td></tr>`).join('')
+      : '<tr><td class="empty">No SIB funds yet</td></tr>';
+  }
+
+  function renderProperty() {
+    const ps = data.properties || [], rm = data.rentMonth || {};
+    const value = ps.reduce((a, p) => a + n(p.value), 0), eq = ps.reduce((a, p) => a + n(p.value) - n(p.mortgage), 0);
+    const netRent = ps.reduce((a, p) => a + n(p.net), 0);
+    $('#propCards').innerHTML = [
+      ['Property value', compact(value, 'KES'), 'equity ' + compact(eq, 'KES')],
+      ['Net rent a month', kes(netRent), 'after service charge'],
+      ['Rent received', kes(rm.received), 'this month' + (rm.due ? ' · ' + kes(rm.due) + ' due' : '')],
+    ].map(([l, v, s]) => `<div class="card"><div class="label">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+    $('#propList').innerHTML = ps.map(p => `<div class="prop">
+        <h3>${esc(p.name)}</h3><div class="loc">${esc(p.type || '')}${p.type ? ' · ' : ''}${esc(p.location || '')}</div>
+        <div class="kv">
+          <div><span>Value (estimate)</span>${kes(p.value)}</div>
+          <div><span>Net rent / month</span>${kes(p.net)}</div>
+          <div><span>Yield (gross / net)</span>${pct(p.gross)} / ${pct(p.netYield)}</div>
+          <div><span>Gain on purchase</span><b class="${cls(p.gain)}">${p.purchase ? signed(kes(p.gain), p.gain) : '—'}</b></div>
+          <div><span>Tenant</span>${esc(p.tenant || '—')}</div>
+          <div><span>Lease</span>${esc(p.leaseLeft || '—')}</div>
+          <div><span>Rent due</span>${esc(p.rentDue || '—')}</div>
+          <div><span>Deposit held</span>${p.deposit ? kes(p.deposit) : '—'}</div>
+        </div>
+        ${p.folder ? `<a href="${esc(p.folder)}" target="_blank" rel="noopener">Open documents ↗</a>` : ''}
+      </div>`).join('') || '<div class="empty">No properties yet</div>';
+    drawCash('cash2');
+  }
+
+  // ---------- start ----------
+  function showApp() {
+    $('#setup').hidden = true; $('#app').hidden = false;
+    render();
+    go(store.get('pf_view') || 'overview');
+  }
+
+  const hashCfg = fromHash();
+  if (hashCfg) { cfg = hashCfg; store.set('pf_cfg', cfg); }
+  if (!cfg) { $('#setup').hidden = false; }
+  else {
+    if (data) showApp();
+    refresh(false).then(() => { if (!$('#app').hidden) return; if (data) showApp(); });
+    if (!data) { $('#app').hidden = false; $('#setup').hidden = true; $('#nw').textContent = 'Loading…'; }
+  }
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
