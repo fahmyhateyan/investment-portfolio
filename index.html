@@ -53,7 +53,7 @@
 
   .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
   @media (min-width: 760px) { .cards { grid-template-columns: repeat(3, 1fr); } }
-  @media (min-width: 1040px) { .cards { grid-template-columns: repeat(6, 1fr); } #fundCards { grid-template-columns: repeat(4, 1fr); } #propCards { grid-template-columns: repeat(4, 1fr); } }
+  @media (min-width: 1040px) { .cards { grid-template-columns: repeat(6, 1fr); } #fundCards { grid-template-columns: repeat(4, 1fr); } #propCards { grid-template-columns: repeat(4, 1fr); } #cryptoCards { grid-template-columns: repeat(4, 1fr); } }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 15px; min-width: 0; }
   .card .v { font-size: 19px; font-weight: 750; margin: 6px 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card .s { font-size: 11.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -217,6 +217,12 @@
     <!-- CRYPTO -->
     <section class="view" id="v-crypto">
       <div class="cards" id="cryptoCards"></div>
+      <div class="grid2" id="cryptoCharts">
+        <div class="panel"><h2>What you hold</h2><div class="hint">Share of your Kraken value</div>
+          <div class="donutwrap"><div class="donut"><canvas id="krDonut"></canvas><div class="c" id="krC"></div></div><div class="legend" id="krLegend"></div></div></div>
+        <div class="panel"><h2>Profit / loss by coin</h2><div class="hint">USD, value now minus what you paid</div>
+          <div class="chartbox"><canvas id="krPl"></canvas></div></div>
+      </div>
       <div class="panel"><h2>Kraken</h2><div class="hint" id="krakenHint"></div>
         <div id="krakenBody"></div></div>
     </section>
@@ -609,15 +615,53 @@
       onerror="this.remove()"><b>${letter}</b></span>`;
   };
   function renderCrypto() {
-    const rows = data.kraken || [], val = rows.reduce((a, r) => a + n(r.value), 0);
-    $('#cryptoCards').innerHTML = `<div class="card"><div class="label">Kraken total</div><div class="v">${rows.length ? usd(val) : '—'}</div>
-      <div class="s">${rows.length ? kes(val * (data.fx || 129)) : 'not linked yet'}</div></div>`;
-    $('#krakenHint').textContent = data.krakenUpdated ? 'Updated ' + ago(data.krakenUpdated) + ' · refreshes every 30 minutes' : '';
+    const all = data.kraken || [];
+    const rows = all.filter(r => n(r.value) >= 0.5 || n(r.cost) >= 0.5);   // hide dust
+    const dust = all.length - rows.length;
+    const val = all.reduce((a, r) => a + n(r.value), 0);
+    const ks = data.krakenSummary || {};
+    const hasCost = all.some(r => r.cost !== '' && r.cost != null);
+    const putIn = typeof ks.netDeposits === 'number' ? ks.netDeposits : null;
+    const plAll = putIn !== null ? val - putIn : null;
+    const cost = rows.reduce((a, r) => a + n(r.cost), 0), plOpen = rows.reduce((a, r) => a + n(r.pl), 0);
+    const cards = [['Kraken value', all.length ? usd(val) : '—', all.length ? kes(val * (data.fx || 129)) : 'not linked yet']];
+    if (putIn !== null) {
+      cards.push(['Money put in', usd(putIn), 'deposits minus withdrawals']);
+      cards.push(['Profit / loss', `<span class="${cls(plAll)}">${signed(usd(plAll), plAll)}</span>`,
+        putIn > 0 ? `<span class="${cls(plAll)}">${signed(pct(plAll / putIn), plAll)}</span> since you started` : 'since you started']);
+      cards.push(['On coins you hold', `<span class="${cls(plOpen)}">${signed(usd(plOpen), plOpen)}</span>`,
+        `paid ${usd(cost)} · ${n(ks.realized) ? 'taken ' + signed(usd(ks.realized), ks.realized) : 'nothing sold yet'}`]);
+    }
+    $('#cryptoCards').innerHTML = cards.map(([l, v, sub]) => `<div class="card"><div class="label">${l}</div><div class="v">${v}</div><div class="s">${sub}</div></div>`).join('');
+
+    $('#cryptoCharts').style.display = rows.length ? '' : 'none';
+    if (rows.length) {
+      const L = rows.map(r => r.asset), V = rows.map(r => n(r.value)), Cc = rows.map((_, i) => PALETTE[(i + 3) % PALETTE.length]);
+      donut('krDonut', L, V, Cc, (v) => usd(v));
+      $('#krC').innerHTML = `<div><b>${usd(val)}</b><span>on Kraken</span></div>`;
+      legend($('#krLegend'), L, V, Cc, (v) => usd(v));
+      const pr = rows.filter(r => r.pl !== '' && r.pl != null).sort((a, b) => n(a.pl) - n(b.pl));
+      chart('krPl', {
+        type: 'bar',
+        data: { labels: pr.map(r => r.asset), datasets: [{ data: pr.map(r => n(r.pl)), backgroundColor: pr.map(r => n(r.pl) >= 0 ? C.green : C.red), borderRadius: 5 }] },
+        options: { indexAxis: 'y', scales: { x: { ticks: { callback: (v) => usd(v) }, grid: { color: C.line } }, y: { grid: { display: false } } },
+          plugins: { tooltip: { callbacks: { label: (c) => ' ' + usd(c.raw, 2) } } } },
+      });
+    }
+
+    $('#krakenHint').textContent = (data.krakenUpdated ? 'Updated ' + ago(data.krakenUpdated) + ' · refreshes every 30 minutes' : '') + (dust ? ` · ${dust} tiny balance${dust === 1 ? '' : 's'} under $0.50 hidden` : '');
+    const costCols = hasCost ? '<th class="r hide-sm">Paid</th><th class="r">Profit / loss</th>' : '';
     $('#krakenBody').innerHTML = rows.length
-      ? `<div class="scroll"><table><tr><th>Asset</th><th class="r">Amount</th><th class="r">Price</th><th class="r">Value</th></tr>` +
-        rows.map(r => `<tr><td class="tick"><span class="coinrow">${coinIcon(r.asset)}${esc(r.asset)}</span></td><td class="r">${n(r.amount).toLocaleString('en-US', { maximumFractionDigits: 8 })}</td>
-          <td class="r">${r.price === '' ? '—' : usd(r.price, 2)}</td><td class="r">${r.value === '' ? '—' : usd(r.value, 2)}</td></tr>`).join('') + '</table></div>'
-      : `<div class="empty">Kraken isn’t linked yet.<br>In the Google Sheet: Portfolio menu › 1. Set Kraken keys (read-only key, “Query Funds” only).</div>`;
+      ? `<div class="scroll"><table><tr><th>Asset</th><th class="r hide-sm">Amount</th><th class="r hide-sm">Price</th><th class="r">Value</th>${costCols}</tr>` +
+        rows.map(r => `<tr><td class="tick"><span class="coinrow">${coinIcon(r.asset)}${esc(r.asset)}</span>
+            <span class="nm show-sm">${n(r.amount).toLocaleString('en-US', { maximumFractionDigits: 6 })} @ ${r.price === '' ? '—' : usd(r.price, 2)}</span></td>
+          <td class="r hide-sm">${n(r.amount).toLocaleString('en-US', { maximumFractionDigits: 8 })}</td>
+          <td class="r hide-sm">${r.price === '' ? '—' : usd(r.price, 2)}</td>
+          <td class="r">${r.value === '' ? '—' : usd(r.value, 2)}${hasCost && r.cost !== '' ? `<span class="nm show-sm">paid ${usd(r.cost, 2)}</span>` : ''}</td>
+          ${hasCost ? `<td class="r hide-sm">${r.cost === '' ? '—' : usd(r.cost, 2)}</td>
+          <td class="r ${cls(r.pl)}">${r.pl === '' ? '—' : signed(usd(r.pl, 2), r.pl)}<span class="nm">${r.plPct === '' ? '' : signed(pct(r.plPct), r.pl)}</span></td>` : ''}</tr>`).join('') + '</table></div>' +
+        (hasCost ? '' : `<div class="hint" style="margin:12px 0 0">To see what you paid and your profit/loss, add the “Query Ledger Entries” permission to your Kraken API key.</div>`)
+      : `<div class="empty">Kraken isn’t linked yet.<br>In the Google Sheet: Portfolio menu › 1. Set Kraken keys.</div>`;
   }
 
   function renderFunds() {
