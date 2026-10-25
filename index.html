@@ -103,7 +103,13 @@
   td.r, th.r { text-align: right; }
   tr:last-child td { border-bottom: 0; }
   tr.sum td { background: var(--card2); }
-  .tick { font-weight: 700; } .nm { color: var(--faint); font-size: 11.5px; display: block; margin-top: 2px; }
+  .tick { font-weight: 700; }
+  .coin { position: relative; display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: 9px; vertical-align: -6px;
+    border-radius: 50%; background: var(--card2); border: 1px solid var(--line); overflow: hidden; }
+  .coinrow { display: inline-flex; align-items: center; }
+  .coinrow .coin { vertical-align: 0; }
+  .coin b { font-size: 11px; color: var(--muted); }
+  .coin img { position: absolute; inset: 0; width: 100%; height: 100%; background: var(--card); } .nm { color: var(--faint); font-size: 11.5px; display: block; margin-top: 2px; }
   .scroll { overflow-x: auto; }
   .show-sm { display: none !important; }
   .badge { display: inline-block; font-size: 11px; padding: 3px 8px; border-radius: 999px; background: #2A2A1E; color: var(--amber); }
@@ -595,6 +601,13 @@
       : '<tr><td class="empty">No NSE holdings yet</td></tr>';
   }
 
+  // Coin logos from the open-source cryptocurrency-icons set; a lettered circle if a coin isn't in it.
+  const coinIcon = (sym) => {
+    const t = String(sym || '').replace(/\.(S|F|M|B|P)$/i, '').replace(/\d+$/, '').toLowerCase();
+    const letter = esc(t.slice(0, 1).toUpperCase() || '?');
+    return `<span class="coin"><img src="https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/svg/color/${encodeURIComponent(t)}.svg" alt="" loading="lazy"
+      onerror="this.remove()"><b>${letter}</b></span>`;
+  };
   function renderCrypto() {
     const rows = data.kraken || [], val = rows.reduce((a, r) => a + n(r.value), 0);
     $('#cryptoCards').innerHTML = `<div class="card"><div class="label">Kraken total</div><div class="v">${rows.length ? usd(val) : '—'}</div>
@@ -602,7 +615,7 @@
     $('#krakenHint').textContent = data.krakenUpdated ? 'Updated ' + ago(data.krakenUpdated) + ' · refreshes every 30 minutes' : '';
     $('#krakenBody').innerHTML = rows.length
       ? `<div class="scroll"><table><tr><th>Asset</th><th class="r">Amount</th><th class="r">Price</th><th class="r">Value</th></tr>` +
-        rows.map(r => `<tr><td class="tick">${esc(r.asset)}</td><td class="r">${n(r.amount).toLocaleString('en-US', { maximumFractionDigits: 8 })}</td>
+        rows.map(r => `<tr><td class="tick"><span class="coinrow">${coinIcon(r.asset)}${esc(r.asset)}</span></td><td class="r">${n(r.amount).toLocaleString('en-US', { maximumFractionDigits: 8 })}</td>
           <td class="r">${r.price === '' ? '—' : usd(r.price, 2)}</td><td class="r">${r.value === '' ? '—' : usd(r.value, 2)}</td></tr>`).join('') + '</table></div>'
       : `<div class="empty">Kraken isn’t linked yet.<br>In the Google Sheet: Portfolio menu › 1. Set Kraken keys (read-only key, “Query Funds” only).</div>`;
   }

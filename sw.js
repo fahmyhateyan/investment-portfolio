@@ -1,5 +1,5 @@
 // Keeps the dashboard working offline. Your numbers are saved separately on the device.
-const CACHE = 'portfolio-v4';
+const CACHE = 'portfolio-v5';
 const SHELL = [
   './',
   './index.html',
